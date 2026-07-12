@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Phone Cam v3</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{--bg:#09090f;--s:#12141c;--b:#1e2130;--a:#5b7cf7;--a2:#a78bfa;--g:#22d3a5;--r:#f75b5b;--o:#f59e0b;--t:#e8eaf0;--m:#6b7280;}
+body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  min-height:100dvh;display:flex;flex-direction:column;padding:10px;gap:8px;user-select:none;overflow-x:hidden;}
+
+header{display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--b);}
+.logo{width:32px;height:32px;background:linear-gradient(135deg,var(--a),var(--a2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+h1{font-size:16px;font-weight:700;}h1 span{color:var(--a2);}
+.pill{margin-left:auto;display:flex;align-items:center;gap:5px;padding:4px 9px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--b);background:var(--s);}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--m);}
+.pill.live{border-color:var(--g);color:var(--g);}.pill.live .dot{background:var(--g);box-shadow:0 0 6px var(--g);}
+.pill.err{border-color:var(--r);color:var(--r);}.pill.err .dot{background:var(--r);}
+
+.card{background:var(--s);border:1px solid var(--b);border-radius:12px;padding:11px 13px;}
+.ct{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--m);margin-bottom:7px;}
+
+.row{display:flex;gap:7px;align-items:center;}
+input{flex:1;background:var(--bg);border:1px solid var(--b);color:var(--t);border-radius:7px;padding:8px 10px;font-size:13px;outline:none;font-family:monospace;}
+input:focus{border-color:var(--a);}
+button{background:linear-gradient(135deg,var(--a),var(--a2));color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s;touch-action:manipulation;}
+button:active{transform:scale(.95);opacity:.8;}
+button.d{background:linear-gradient(135deg,var(--r),#c0392b);}
+button.g{background:linear-gradient(135deg,var(--g),#059669);}
+button.o{background:linear-gradient(135deg,var(--o),#d97706);}
+button.full{width:100%;padding:12px;font-size:14px;border-radius:9px;margin-top:4px;}
+
+/* Gyro ball */
+.ball-wrap{display:flex;justify-content:center;margin-bottom:6px;}
+canvas#ball{border-radius:50%;border:2px solid var(--b);}
+
+.axes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;}
+.ax{background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:7px 5px;text-align:center;}
+.ax.p{border-top:2px solid var(--r);}.ax.y{border-top:2px solid var(--g);}.ax.r{border-top:2px solid var(--a);}
+.al{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;}
+.ax.p .al{color:var(--r);}.ax.y .al{color:var(--g);}.ax.r .al{color:var(--a);}
+.av{font-size:14px;font-weight:700;font-family:monospace;}
+.au{font-size:9px;color:var(--m);}
+
+/* Joysticks */
+.sticks{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.stick-wrap{display:flex;flex-direction:column;align-items:center;gap:5px;}
+.slbl{font-size:9px;color:var(--m);font-weight:700;text-transform:uppercase;letter-spacing:.4px;text-align:center;}
+canvas.stick{border-radius:50%;border:2px solid var(--b);background:var(--bg);touch-action:none;display:block;}
+
+/* Zoom */
+.zoom-presets{display:flex;gap:5px;margin-bottom:7px;}
+.zp{flex:1;padding:8px 4px;font-size:13px;font-weight:700;border-radius:8px;background:var(--bg);border:1px solid var(--b);color:var(--m);cursor:pointer;text-align:center;transition:all .15s;}
+.zp.active{background:var(--a);border-color:var(--a);color:#fff;}
+.zp:active{transform:scale(.95);}
+.zoom-slider-row{display:flex;align-items:center;gap:8px;}
+.zoom-slider-row span{font-size:11px;color:var(--m);min-width:32px;text-align:center;font-family:monospace;}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:4px;border-radius:2px;background:var(--b);outline:none;border:none;padding:0;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--a2));cursor:pointer;}
+
+/* Record */
+.fps-row{display:flex;gap:5px;margin-bottom:7px;}
+.fpb{flex:1;padding:7px;font-size:12px;font-weight:700;border-radius:7px;background:var(--bg);border:1px solid var(--b);color:var(--m);cursor:pointer;text-align:center;}
+.fpb.active{background:var(--a);border-color:var(--a);color:#fff;}
+.fpb:active{transform:scale(.95);}
+.rec-info{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--r);font-weight:600;margin-bottom:6px;}
+.rdot{width:8px;height:8px;border-radius:50%;background:var(--r);animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+
+.stats{display:flex;gap:8px;padding:6px 9px;background:var(--bg);border-radius:7px;border:1px solid var(--b);font-size:11px;color:var(--m);}
+.stat strong{color:var(--t);font-family:monospace;}
+.msg{font-size:11px;color:var(--m);font-family:monospace;text-align:center;min-height:14px;padding:2px 0;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">📷</div>
+  <h1>Phone <span>Cam</span> <span style="font-size:10px;opacity:.4">v3</span></h1>
+  <div class="pill" id="pill"><div class="dot"></div><span id="pillTxt">Offline</span></div>
+</header>
+
+<!-- Connect -->
+<div class="card">
+  <div class="ct">🔌 Connect to Blender</div>
+  <div class="row" style="margin-bottom:6px">
+    <input type="text" id="ipIn" placeholder="192.168.x.x">
+    <input type="number" id="portIn" value="8765" style="flex:0 0 68px;text-align:center">
+  </div>
+  <button class="full" id="conBtn" onclick="toggleConnect()">▶ Connect</button>
+</div>
+
+<!-- Orientation -->
+<div class="card">
+  <div class="ct">📐 Orientation</div>
+  <div class="ball-wrap"><canvas id="ball" width="80" height="80"></canvas></div>
+  <div class="axes">
+    <div class="ax p"><div class="al">Pitch β</div><div class="av" id="vB">0.0</div><div class="au">deg</div></div>
+    <div class="ax y"><div class="al">Yaw α</div><div class="av" id="vA">0.0</div><div class="au">deg</div></div>
+    <div class="ax r"><div class="al">Roll γ</div><div class="av" id="vG">0.0</div><div class="au">deg</div></div>
+  </div>
+</div>
+
+<!-- Joysticks -->
+<div class="card">
+  <div class="ct">🕹 Movement</div>
+  <div class="sticks">
+    <div class="stick-wrap">
+      <div class="slbl">↔ Strafe · ↕ Forward</div>
+      <canvas class="stick" id="stickL" width="120" height="120"></canvas>
+    </div>
+    <div class="stick-wrap">
+      <div class="slbl">↕ Up · Down</div>
+      <canvas class="stick" id="stickR" width="120" height="120"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Zoom -->
+<div class="card">
+  <div class="ct">🔭 Zoom / Focal Length</div>
+  <div class="zoom-presets">
+    <div class="zp active" onclick="zoomPreset(1,this)">1×<br><span style="font-size:9px;opacity:.6">24mm</span></div>
+    <div class="zp" onclick="zoomPreset(3,this)">3×<br><span style="font-size:9px;opacity:.6">70mm</span></div>
+    <div class="zp" onclick="zoomPreset(5,this)">5×<br><span style="font-size:9px;opacity:.6">135mm</span></div>
+  </div>
+  <div class="zoom-slider-row">
+    <span>1mm</span>
+    <input type="range" id="focalSlider" min="1" max="800" value="24" step="1" oninput="focalSlide(this.value)">
+    <span>800mm</span>
+  </div>
+  <div style="text-align:center;font-size:12px;color:var(--t);margin-top:5px;font-family:monospace">
+    <span id="focalVal">24</span> mm
+  </div>
+</div>
+
+<!-- Controls -->
+<div class="card">
+  <div class="ct">🎛 Controls</div>
+  <div class="row" style="margin-bottom:7px">
+    <button class="g" style="flex:1" onclick="calibrate()">⊕ Calibrate</button>
+    <button class="d" style="flex:1" onclick="resetCam()">↺ Reset</button>
+  </div>
+  <div class="stats">
+    <div class="stat">FPS <strong id="fpsV">0</strong></div>
+    <div class="stat">Sent <strong id="sentV">0</strong></div>
+    <div class="stat">Mode <strong id="modeV">—</strong></div>
+  </div>
+</div>
+
+<!-- Record -->
+<div class="card">
+  <div class="ct">⏺ Record Keyframes</div>
+  <div class="fps-row">
+    <div class="fpb active" onclick="setFps(24,this)">24 fps</div>
+    <div class="fpb" onclick="setFps(30,this)">30 fps</div>
+    <div class="fpb" onclick="setFps(60,this)">60 fps</div>
+  </div>
+  <div id="recInfo" style="display:none" class="rec-info">
+    <div class="rdot"></div> REC — <span id="recF">0</span> frames
+  </div>
+  <button class="d full" id="recBtn" onclick="toggleRecord()">⏺ Start Record</button>
+</div>
+
+<div class="msg" id="msg">Waiting...</div>
+
+<script>
+// ── State ──────────────────────────────────────
+let ws=null, connected=false;
+let rawA=0,rawB=0,rawG=0;
+let filteredQ={w:1,x:0,y:0,z:0};
+let calQw=1,calQx=0,calQy=0,calQz=0, calibrated=false;
+let hasQuat=false, sensor=null;
+let sendCount=0,fpsCount=0,fpsTimer=null;
+let recFps=24,recFrames=0,isRecording=false;
+let lx=0,ly=0,rz=0;
+let currentFocal=24;
+
+// BEST SETTINGS (matching Blender addon)
+const SENSOR_FPS = 60;
+const ROTATION_SMOOTH = 0.18;
+
+// ── WebSocket ──────────────────────────────────
+function toggleConnect(){ connected?disconnect():connect(); }
+
+function connect(){
+  const ip=document.getElementById('ipIn').value.trim();
+  const port=document.getElementById('portIn').value.trim();
+  if(!ip){setMsg('⚠️ กรอก IP ก่อน');return;}
+  setMsg('กำลังเชื่อมต่อ...');
+  try{ ws=new WebSocket(`ws://${ip}:${port}`); }catch(e){setMsg('❌ URL ผิด');return;}
+  ws.onopen=()=>{
+    connected=true; setStatus('live','Live');
+    document.getElementById('conBtn').textContent='■ Disconnect';
+    document.getElementById('conBtn').classList.add('d');
+    setMsg('✅ เชื่อมต่อสำเร็จ!');
+    requestSensor(); startFPS();
+  };
+  ws.onclose=()=>{
+    connected=false; setStatus('','Offline');
+    document.getElementById('conBtn').textContent='▶ Connect';
+    document.getElementById('conBtn').classList.remove('d');
+    setMsg('🔌 ตัดการเชื่อมต่อ'); stopFPS();
+  };
+  ws.onerror=()=>{ setStatus('err','Error'); setMsg('❌ เชื่อมต่อไม่ได้'); };
+}
+function disconnect(){ if(ws){ws.close();ws=null;} }
+
+function send(d){
+  if(ws&&ws.readyState===WebSocket.OPEN){
+    ws.send(JSON.stringify(d));
+    sendCount++; fpsCount++;
+    document.getElementById('sentV').textContent=sendCount;
+  }
+}
+
+// ── Sensor ─────────────────────────────────────
+function requestSensor(){
+  // Try AbsoluteOrientationSensor first (quaternion — best accuracy)
+  if('AbsoluteOrientationSensor' in window){
+    try{
+      // Request permissions for all needed sensors
+      Promise.all([
+        navigator.permissions.query({name:'accelerometer'}),
+        navigator.permissions.query({name:'gyroscope'}),
+        navigator.permissions.query({name:'magnetometer'}),
+      ]).then(results=>{
+        if(results.every(r=>r.state==='granted'||r.state==='prompt')){
+          startAbsSensor();
+        } else {
+          setMsg('⚠️ Permission denied — ลองใช้ DeviceOrientation แทน');
+          startDeviceOrientation();
+        }
+      }).catch(()=>startAbsSensor());
+    }catch(e){ startDeviceOrientation(); }
+  } else {
+    startDeviceOrientation();
+  }
+}
+
+function startAbsSensor(){
+  try{
+    sensor = new AbsoluteOrientationSensor({ frequency: SENSOR_FPS, referenceFrame: "device" });
+    sensor.addEventListener("reading", ()=>{
+      const q = sensor.quaternion;
+      const target = { x:q[0], y:q[1], z:q[2], w:q[3] };
+
+      // Quaternion smoothing (phone side)
+      filteredQ.w += (target.w - filteredQ.w) * ROTATION_SMOOTH;
+      filteredQ.x += (target.x - filteredQ.x) * ROTATION_SMOOTH;
+      filteredQ.y += (target.y - filteredQ.y) * ROTATION_SMOOTH;
+      filteredQ.z += (target.z - filteredQ.z) * ROTATION_SMOOTH;
+
+      // Apply calibration
+      let qOut = calibrated ? applyCalib(filteredQ) : {...filteredQ};
+
+      hasQuat=true;
+      document.getElementById('modeV').textContent='Quat';
+      sendAll({qw:qOut.w, qx:qOut.x, qy:qOut.y, qz:qOut.z});
+    });
+    sensor.addEventListener("error", e=>{
+      console.warn('AbsOriSensor error:',e);
+      hasQuat=false;
+      startDeviceOrientation();
+    });
+    sensor.start();
+    setMsg('📡 Quaternion sensor active (best mode)');
+  }catch(e){
+    startDeviceOrientation();
+  }
+}
+
+function startDeviceOrientation(){
+  if(typeof DeviceOrientationEvent !== 'undefined'){
+    if(typeof DeviceOrientationEvent.requestPermission === 'function'){
+      DeviceOrientationEvent.requestPermission().then(s=>{
+        if(s==='granted') attachOriListener();
+        else setMsg('⚠️ Permission denied');
+      });
+    } else attachOriListener();
+  } else setMsg('❌ ไม่รองรับ Gyroscope');
+}
+
+function attachOriListener(){
+  window.addEventListener('deviceorientation', e=>{
+    rawA=e.alpha||0; rawB=e.beta||0; rawG=e.gamma||0;
+    updateBall(); updateAxes();
+    document.getElementById('modeV').textContent='Euler';
+    if(!hasQuat){
+      sendAll({
+        alpha: rawA - (calibrated?calQw:0),
+        beta:  rawB - (calibrated?calQx:0),
+        gamma: rawG - (calibrated?calQy:0),
+      });
+    }
+  }, true);
+  setMsg('📡 DeviceOrientation active');
+}
+
+// Apply calibration to quaternion
+function applyCalib(q){
+  // Inverse of cal * current
+  const cw=calQw, cx=-calQx, cy=-calQy, cz=-calQz;
+  return {
+    w: cw*q.w - cx*q.x - cy*q.y - cz*q.z,
+    x: cw*q.x + cx*q.w + cy*q.z - cz*q.y,
+    y: cw*q.y - cx*q.z + cy*q.w + cz*q.x,
+    z: cw*q.z + cx*q.y - cy*q.x + cz*q.w,
+  };
+}
+
+// Send rotation + movement in same packet
+function sendAll(rotData){
+  const d = {...rotData, move_x:lx, move_y:ly, move_z:rz};
+  send(d);
+}
+
+// ── Calibrate ──────────────────────────────────
+function calibrate(){
+  if(hasQuat){
+    calQw=filteredQ.w; calQx=filteredQ.x; calQy=filteredQ.y; calQz=filteredQ.z;
+  } else {
+    calQw=rawA; calQx=rawB; calQy=rawG; // reuse fields for euler offsets
+  }
+  calibrated=true;
+  setMsg('✅ Calibrated — ทิศนี้คือ "ศูนย์"');
+}
+
+function resetCam(){
+  calibrated=false;
+  send({reset:true});
+  currentFocal=24;
+  document.getElementById('focalSlider').value=24;
+  document.getElementById('focalVal').textContent='24';
+  setMsg('↺ Reset กล้องแล้ว');
+}
+
+// ── Zoom / Focal ───────────────────────────────
+function zoomPreset(x, el){
+  document.querySelectorAll('.zp').forEach(z=>z.classList.remove('active'));
+  el.classList.add('active');
+  const focalMap={1:24,3:70,5:135};
+  currentFocal = focalMap[x]||50;
+  document.getElementById('focalSlider').value=currentFocal;
+  document.getElementById('focalVal').textContent=currentFocal;
+  send({zoom_preset:x, focal_set:currentFocal});
+}
+
+function focalSlide(val){
+  currentFocal=parseInt(val);
+  document.getElementById('focalVal').textContent=currentFocal;
+  // Clear preset highlight if custom value
+  const presetMap={24:0,70:1,135:2};
+  const presets=document.querySelectorAll('.zp');
+  presets.forEach(p=>p.classList.remove('active'));
+  if(presetMap[currentFocal]!==undefined)
+    presets[presetMap[currentFocal]].classList.add('active');
+  send({focal_set:currentFocal});
+}
+
+// ── Record ─────────────────────────────────────
+function setFps(v,el){
+  recFps=v;
+  document.querySelectorAll('.fpb').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function toggleRecord(){
+  if(!isRecording){
+    isRecording=true; recFrames=0;
+    document.getElementById('recBtn').textContent='⏹ Stop Record';
+    document.getElementById('recBtn').className='o full';
+    document.getElementById('recInfo').style.display='flex';
+    send({record_start:true, fps:recFps});
+    setMsg(`⏺ Recording ${recFps}fps...`);
+  } else {
+    isRecording=false;
+    document.getElementById('recBtn').textContent='⏺ Start Record';
+    document.getElementById('recBtn').className='d full';
+    document.getElementById('recInfo').style.display='none';
+    send({record_stop:true});
+    setMsg(`✅ บันทึก ${recFrames} frames`);
+  }
+}
+
+// ── FPS counter ────────────────────────────────
+function startFPS(){ fpsTimer=setInterval(()=>{document.getElementById('fpsV').textContent=fpsCount;fpsCount=0;},1000); }
+function stopFPS(){ clearInterval(fpsTimer); document.getElementById('fpsV').textContent='0'; }
+
+// ── UI ──────────────────────────────────────────
+function setStatus(cls,txt){
+  const p=document.getElementById('pill');
+  p.className='pill'+(cls?' '+cls:'');
+  document.getElementById('pillTxt').textContent=txt;
+}
+function setMsg(m){ document.getElementById('msg').textContent=m; }
+function updateAxes(){
+  document.getElementById('vA').textContent=rawA.toFixed(1);
+  document.getElementById('vB').textContent=rawB.toFixed(1);
+  document.getElementById('vG').textContent=rawG.toFixed(1);
+}
+
+// ── Orientation Ball ───────────────────────────
+const bc=document.getElementById('ball'),bctx=bc.getContext('2d');
+function updateBall(){
+  const ctx=bctx,W=80,H=80,cx=40,cy=40,r=38;
+  ctx.clearRect(0,0,W,H);
+  const g=ctx.createRadialGradient(cx-r*.2,cy-r*.2,r*.1,cx,cy,r);
+  g.addColorStop(0,'#1a1d2e');g.addColorStop(1,'#09090f');
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+  const roll=rawG*Math.PI/180, pitch=rawB*Math.PI/180;
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(roll);
+  const po=Math.sin(pitch)*r*.8;
+  ctx.beginPath();ctx.rect(-r,po,r*2,r*2);ctx.clip();
+  const eg=ctx.createLinearGradient(0,po,0,r);
+  eg.addColorStop(0,'rgba(34,211,165,.4)');eg.addColorStop(1,'rgba(34,211,165,.05)');
+  ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fillStyle=eg;ctx.fill();
+  ctx.restore();
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(roll);
+  const po2=Math.sin(pitch)*r*.8;
+  ctx.beginPath();ctx.moveTo(-r,po2);ctx.lineTo(r,po2);
+  ctx.strokeStyle='#22d3a5';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.restore();
+  ctx.strokeStyle='rgba(255,255,255,.4)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(cx-6,cy);ctx.lineTo(cx+6,cy);ctx.moveTo(cx,cy-6);ctx.lineTo(cx,cy+6);ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.strokeStyle='#1e2130';ctx.lineWidth=2;ctx.stroke();
+}
+updateBall();
+
+// ── Joystick ───────────────────────────────────
+function makeStick(id, onUpdate){
+  const c=document.getElementById(id),ctx=c.getContext('2d');
+  const W=c.width,H=c.height,cx=W/2,cy=H/2,maxR=(W/2)-14;
+  let active=false,ax=0,ay=0;
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.beginPath();ctx.arc(cx,cy,maxR+6,0,Math.PI*2);
+    ctx.strokeStyle='#1e2130';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.strokeStyle='#1a1d2a';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(cx,cy-maxR);ctx.lineTo(cx,cy+maxR);
+    ctx.moveTo(cx-maxR,cy);ctx.lineTo(cx+maxR,cy);ctx.stroke();
+    ctx.beginPath();ctx.arc(cx+ax,cy+ay,16,0,Math.PI*2);
+    ctx.fillStyle='rgba(91,124,247,.2)';ctx.fill();
+    const kg=ctx.createRadialGradient(cx+ax-3,cy+ay-3,2,cx+ax,cy+ay,16);
+    kg.addColorStop(0,'#7b9cf7');kg.addColorStop(1,'#3a5cd6');
+    ctx.beginPath();ctx.arc(cx+ax,cy+ay,16,0,Math.PI*2);
+    ctx.fillStyle=kg;ctx.fill();
+    ctx.beginPath();ctx.arc(cx+ax,cy+ay,16,0,Math.PI*2);
+    ctx.strokeStyle='rgba(255,255,255,.15)';ctx.lineWidth=1;ctx.stroke();
+  }
+
+  function upd(ex,ey){
+    const rect=c.getBoundingClientRect();
+    let tx=ex-rect.left-cx, ty=ey-rect.top-cy;
+    const dist=Math.sqrt(tx*tx+ty*ty);
+    if(dist>maxR){tx=tx/dist*maxR;ty=ty/dist*maxR;}
+    ax=tx;ay=ty;
+    onUpdate(tx/maxR,ty/maxR);
+    draw();
+  }
+  function rel(){ax=0;ay=0;onUpdate(0,0);draw();}
+
+  c.addEventListener('touchstart',e=>{e.preventDefault();active=true;const t=e.touches[0];upd(t.clientX,t.clientY);},{passive:false});
+  c.addEventListener('touchmove',e=>{e.preventDefault();if(active){const t=e.touches[0];upd(t.clientX,t.clientY);}},{passive:false});
+  c.addEventListener('touchend',e=>{e.preventDefault();active=false;rel();},{passive:false});
+  c.addEventListener('mousedown',e=>{active=true;upd(e.clientX,e.clientY);});
+  window.addEventListener('mousemove',e=>{if(active)upd(e.clientX,e.clientY);});
+  window.addEventListener('mouseup',()=>{if(active){active=false;rel();}});
+  draw();
+}
+
+makeStick('stickL',(x,y)=>{ lx=x; ly=-y; });  // strafe + forward
+makeStick('stickR',(x,y)=>{ rz=-y; });          // altitude
+
+// ── Save IP ────────────────────────────────────
+window.addEventListener('load',()=>{
+  const s=localStorage.getItem('pc_ip');
+  if(s) document.getElementById('ipIn').value=s;
+});
+document.getElementById('ipIn').addEventListener('change',e=>localStorage.setItem('pc_ip',e.target.value));
+</script>
+</body>
+</html>
